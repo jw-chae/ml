@@ -31,7 +31,11 @@ class LinearRegression:
 import matplotlib.pyplot as plt
  
 #Loding the data
-df = pd.read_csv('data_LinearRegression.csv')
+import pandas as pd
+import urllib.request
+srul = 'https://raw.githubusercontent.com/satishgunjal/datasets/master/univariate_profits_and_populations_from_the_cities.csv'
+res = urllib.request.urlopen(srul)
+df = pd.read_csv(res)
  
 #Preparing the data
 x = np.array(df.iloc[:,0])

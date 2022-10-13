@@ -1,10 +1,28 @@
 import numpy as np
+from numpy import random
 import math
 #Likelihood 가능도(우도) PDF에서의 y값을 가능도로 본다. 정규분포를 따르는 PDF를 생각해보자. 0부터 100까지의 수직선에 있는 변수 중 50을 뽑을 확률은 원래는 0이지만 Likelihood에서는 0.4이다.
 #PDF Probability Density Function 확률 밀도함수
 #MLE Maximum Liklihood Estimator 최대 가능도 추정
 #STD Standard Deviation 표준편차 (분산을 제곱근 한 것)
 #Defining the class
+class train_test_split():
+    def __init__(self,data,target,test_size):
+        self._data = data
+        self._target = target
+        self._test_size = test_size
+
+    def train_test_split(self, data ,target ,test_size):
+    #data.reset_index(drop=True, inplace=True) #데이터를 일단 섞어주기
+        random.shuffle(data)
+        random.shuffle(target)
+        x_train = data.iloc[:round(len(data)*(1-test_size)),:]#0~0.7
+        y_train = target.iloc[:round(len(target)*(1-test_size)),]
+        x_test = data.iloc[round(len(data)*(1-test_size)):,:]#0.7~1
+        y_test = target.iloc[round(len(target)*(1-test_size)):,]#0.7~1
+        print("x_train: {} , x_test: {} ,y_train: {},y_test: {} ".format(x_train.shape, x_test.shape, y_train.shape, y_test.shape))
+
+        return x_train , x_test , y_train , y_test 
 
 class MLE():
     def __init__(self, samples, m, std, learning_rate, epochs, verbose=False):
@@ -35,7 +53,7 @@ class MLE():
        
         result = (1/np.sqrt(2*math.pi)*np.power(self._std, 2))*np.exp(-np.power(x-M,2)/(2*np.power(self._std, 2)))
     
-        return np.prod(result) #array 곱을 반환
+        return np.prod(result)
 
     def fit(self):
         """
@@ -99,24 +117,31 @@ class LinearRegression:
         self.m = 0
         self.b = 0
         self.n = len(x)
-         
-    def fit(self , epochs , lr):   #LinearRegression 클래스는 fit() 메소드로 X, y 배열을 입력받아 회귀 계수(Coefficients)를 coef_속성에 저장한다.
+    
+    def compute_cost(self, x, y, theta):
+ 
+        predictions = x.dot(theta)
+        errors = np.subtract(predictions, y) 
+        sqrErrors = np.square(errors) 
+        J = 1 / (2 * self.m) * np.sum(sqrErrors)
 
-        #Implementing Gradient Descent
-        for i in range(epochs):
-            y_pred = self.m * self.data + self.b
-             
-            #Calculating derivatives w.r.t Parameters
-            D_m = (-2/self.n)*sum(self.data * (self.label - y_pred))
-            D_b = (-1/self.n)*sum(self.label-y_pred)
-             
-            #Updating Parameters
-            self.m = self.m - lr * D_m
-            self.c = self.b - lr * D_b
-             
-    def predict(self , inp): #fit() 메소드로 모델을 생성하면, predict 함수를 사용하여 다음과 같이 예측 결과값을 얻을 수 있다.
-        y_pred = self.m * inp + self.b 
-        return y_pred
+        return J
+        
+    
+    def gradient_descent(self, x, y, theta, alpha, iterations):
+        cost_history = np.zeros(iterations) #반복하는 횟수만큼 cost를 저장할 0이 들어있는 행렬 만들기
+
+        for i in range(iterations): #반복 시작
+            predictions = x.dot(theta) #예측값은 X에 세타를 곱해준  벡터 내적
+            errors = np.subtract(predictions, y) #에러는 예측값과 y를 빼준 값
+            sum_delta = (alpha / self.m) * x.transpose().dot(errors)#세타의 수정값 sum_delta 공식 그대로 넣은것 
+            theta = theta - sum_delta #수정된 세타의 값 
+
+            cost_history[i] = self.compute_cost(x, y, theta) #cost를 계산한 값에 관한 기록을 cost history에 저장하자.   
+
+        return theta, cost_history
+
+   
 
 
 class LogisticRegression:

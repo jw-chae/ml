@@ -23,7 +23,8 @@ class train_test_split():
         print("x_train: {} , x_test: {} ,y_train: {},y_test: {} ".format(x_train.shape, x_test.shape, y_train.shape, y_test.shape))
 
         return x_train , x_test , y_train , y_test 
-
+# class normalization():
+#     def __init__(self,data)
 class MLE():
     def __init__(self, samples, m, std, learning_rate, epochs, verbose=False):
         """

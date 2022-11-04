@@ -6,26 +6,35 @@ import math
 #MLE Maximum Liklihood Estimator 최대 가능도 추정
 #STD Standard Deviation 표준편차 (분산을 제곱근 한 것)
 #Defining the class
-class train_test_split():
-    def __init__(self,data,target,test_size):
+class train_test_split:
+    def __init__(self,data,target,test_size,shuffle=False):
         self._data = data
         self._target = target
         self._test_size = test_size
-
-    def train_test_split(self, data ,target ,test_size):
-    #data.reset_index(drop=True, inplace=True) #데이터를 일단 섞어주기
-        random.shuffle(data)
-        random.shuffle(target)
+        self.shuffle = shuffle
+        #   self._xtrain = x_train
+        #   self._xtest = x_test
+        #   self._ytrain = y_train
+        #   self._ytest = y_test
+    @classmethod
+    def split(self, data ,target ,test_size):
+        #data.reset_index(drop=self.shuffle, inplace=self.shuffle) #데이터를 일단 섞어주기
         x_train = data.iloc[:round(len(data)*(1-test_size)),:]#0~0.7
         y_train = target.iloc[:round(len(target)*(1-test_size)),]
         x_test = data.iloc[round(len(data)*(1-test_size)):,:]#0.7~1
         y_test = target.iloc[round(len(target)*(1-test_size)):,]#0.7~1
+        x_train = x_train.to_numpy()
+        y_train = y_train.to_numpy()
+        x_test = x_test.to_numpy()
+        y_test = y_test.to_numpy()
         print("x_train: {} , x_test: {} ,y_train: {},y_test: {} ".format(x_train.shape, x_test.shape, y_train.shape, y_test.shape))
 
         return x_train , x_test , y_train , y_test 
+
+
 # class normalization():
 #     def __init__(self,data)
-class MLE():
+class MLE:
     def __init__(self, samples, m, std, learning_rate, epochs, verbose=False):
         """
         samples: MLE를 얻기위한 표본

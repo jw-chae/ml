@@ -1,39 +1,70 @@
 import numpy as np
 from numpy import random
 import math
+
+from pandas import DataFrame
 #Likelihood 가능도(우도) PDF에서의 y값을 가능도로 본다. 정규분포를 따르는 PDF를 생각해보자. 0부터 100까지의 수직선에 있는 변수 중 50을 뽑을 확률은 원래는 0이지만 Likelihood에서는 0.4이다.
 #PDF Probability Density Function 확률 밀도함수
 #MLE Maximum Liklihood Estimator 최대 가능도 추정
 #STD Standard Deviation 표준편차 (분산을 제곱근 한 것)
 #Defining the class
 class train_test_split:
-    def __init__(self,data,target,test_size,shuffle=False):
+    def __init__(self,data,target,test_size,datatype,shuffle=False):
         self._data = data
         self._target = target
         self._test_size = test_size
         self.shuffle = shuffle
+        self.datatype = datatype
         #   self._xtrain = x_train
         #   self._xtest = x_test
         #   self._ytrain = y_train
         #   self._ytest = y_test
     @classmethod
-    def split(self, data ,target ,test_size):
+    def split(self, data ,target ,test_size,shuffle=False,datatype='df'):
         #data.reset_index(drop=self.shuffle, inplace=self.shuffle) #데이터를 일단 섞어주기
-        x_train = data.iloc[:round(len(data)*(1-test_size)),:]#0~0.7
-        y_train = target.iloc[:round(len(target)*(1-test_size)),]
-        x_test = data.iloc[round(len(data)*(1-test_size)):,:]#0.7~1
-        y_test = target.iloc[round(len(target)*(1-test_size)):,]#0.7~1
-        x_train = x_train.to_numpy()
-        y_train = y_train.to_numpy()
-        x_test = x_test.to_numpy()
-        y_test = y_test.to_numpy()
+        if(shuffle==True):
+            if type(data) is np.ndarray:
+                s = np.arange(data.shape[0])
+                np.random.shuffle(s)
+                data=data[s]
+                target=target[s]
+                print('data shuffle complete')       
+            else:#(type(data) is DataFrame and shuffle is True):
+                s = np.arange(data.value_counts.shape[0])
+                np.random.shuffle(s)
+                data=data[s]
+                target=target[s]
+                print('data shuffle complete')        
+
+
+        if(datatype== 'df'):
+            x_train = data.iloc[:round(len(data)*(1-test_size)),:]#0~0.7
+            y_train = target.iloc[:round(len(target)*(1-test_size)),]
+            x_test = data.iloc[round(len(data)*(1-test_size)):,:]#0.7~1
+            y_test = target.iloc[round(len(target)*(1-test_size)):,]#0.7~1
+        else:
+            x_train = data[:round(len(data)*(1-test_size)),:]#0~0.7
+            y_train = target[:round(len(target)*(1-test_size)),]
+            x_test = data[round(len(data)*(1-test_size)):,:]#0.7~1
+            y_test = target[round(len(target)*(1-test_size)):,]#0.7~1
+        # x_train = x_train.to_numpy()
+        # y_train = y_train.to_numpy()
+        # x_test = x_test.to_numpy()
+        # y_test = y_test.to_numpy()
         print("x_train: {} , x_test: {} ,y_train: {},y_test: {} ".format(x_train.shape, x_test.shape, y_train.shape, y_test.shape))
 
         return x_train , x_test , y_train , y_test 
 
 
-# class normalization():
-#     def __init__(self,data)
+class accuracy:
+    def __init__(self,y_test,y_pred):
+        self.y_pred = y_test
+        self.y_data = y_pred
+    @classmethod
+    def score(self,y_test,y_pred):
+        acc=np.mean(y_test==y_pred)
+        return acc
+
 class MLE:
     def __init__(self, samples, m, std, learning_rate, epochs, verbose=False):
         """
@@ -202,6 +233,192 @@ class LogisticRegression:
                  
         return y_pred
 
+#decision tree
+class Node():
+    def __init__(self, feature_index=None, threshold=None, left=None, right=None, info_gain=None, value=None):
+        ''' constructor 
+        feature index : sepal and petal
+            threshold : best split data of feature
+                left  : left node
+                right : node
+                info_gain = information gain
+        '''      
+        # for decision node
+        self.feature_index = feature_index 
+        self.threshold = threshold
+        self.left = left 
+        self.right = right
+        self.info_gain = info_gain
+        
+        # for leaf node
+        self.value = value
+class DecisionTreeClassifier():
+    def __init__(self, min_samples_split=2, max_depth=2):
+        # initialize the root of the tree 
+        """ 
+                root
+            nodeL   nodeR    
+        """
+        self.root = None
+        
+        # stopping conditions
+        self.min_samples_split = min_samples_split
+        self.max_depth = max_depth
+        
+    def build_tree(self, dataset, curr_depth=0):
+        
+        ''' 
+        recursive function to build the tree
+        X : attributes(sepal.lenth to petal.width)  
+        Y : type (label)
+        num_samples : row of feature
+        num_features : column of feature
+        ''' 
+        X, Y = dataset[:,:-1], dataset[:,-1]
+        num_samples, num_features = np.shape(X) #row and colum of features 
+        #print(' sample:',num_samples, ' feature:',num_features," Class:",Y)
+        # split until stopping conditions are met
+        if num_samples>=self.min_samples_split and curr_depth<=self.max_depth:
+            # find the best split
+            best_split = self.get_best_split(dataset, num_samples, num_features)
+            #print("best split:",best_split)
+            # check if information gain is positive
+            if best_split["info_gain"]>0:
+                # recur left
+                left_subtree = self.build_tree(best_split["dataset_left"], curr_depth+1)
+                # recur right
+                right_subtree = self.build_tree(best_split["dataset_right"], curr_depth+1)
+                # return decision node
+                return Node(best_split["feature_index"], best_split["threshold"], 
+                            left_subtree, right_subtree, best_split["info_gain"])
+        
+        # compute leaf node
+        leaf_value = self.calculate_leaf_value(Y)
+        # return leaf node
+        return Node(value=leaf_value)
+    
+    def get_best_split(self, dataset, num_samples, num_features):
+        ''' function to find the best split 
+                  1. take loop and list every feature of index
+                  2. list every value of features
+                  3. split dataset according to unique of feature values
+                  4. dataset value could be null, so if dataset is not null compute impormation gain
+                  5. information gain is as better as small, if current gain > max gain , change index
+        '''
+        
+        # dictionary to store the best split
+        best_split = {}
+        max_info_gain = -float("inf")
+        print('num_features:',num_features)
+        # loop over all the features
+        for feature_index in range(num_features): 
+            feature_values = dataset[:, feature_index]
+            possible_thresholds = np.unique(feature_values)
+            # loop over all the feature values present in the data
+            for threshold in possible_thresholds:
+                # get current split
+                dataset_left, dataset_right = self.split(dataset, feature_index, threshold)
+                # check if childs are not null
+                if len(dataset_left)>0 and len(dataset_right)>0:
+                    y, left_y, right_y = dataset[:, -1], dataset_left[:, -1], dataset_right[:, -1]
+                    # compute information gain
+                    curr_info_gain = self.information_gain(y, left_y, right_y, "gini")
+                    # update the best split if needed
+                    if curr_info_gain>max_info_gain:
+                        best_split["feature_index"] = feature_index
+                        best_split["threshold"] = threshold
+                        best_split["dataset_left"] = dataset_left
+                        best_split["dataset_right"] = dataset_right
+                        best_split["info_gain"] = curr_info_gain
+                        max_info_gain = curr_info_gain
+                        
+        # return best split
+        return best_split
+    
+    def split(self, dataset, feature_index, threshold):
+        ''' function to split the data 
+            if feature index is smaller than threshold(according to maximum gain), set in left array (node)
+            if feature index is bigger than threshold, set in right array (node)
+        '''
+        
+        dataset_left = np.array([row for row in dataset if row[feature_index]<=threshold])
+        dataset_right = np.array([row for row in dataset if row[feature_index]>threshold])
+        return dataset_left, dataset_right
+    
+    def information_gain(self, parent, l_child, r_child, mode="entropy"):
+        ''' function to compute information gain '''
+        
+        weight_l = len(l_child) / len(parent)
+        weight_r = len(r_child) / len(parent)
+        if mode=="gini":
+            gain = self.gini_index(parent) - (weight_l*self.gini_index(l_child) + weight_r*self.gini_index(r_child))
+        else:
+            gain = self.entropy(parent) - (weight_l*self.entropy(l_child) + weight_r*self.entropy(r_child))
+        return gain
+    
+    def entropy(self, y):
+        ''' function to compute entropy '''
+        
+        class_labels = np.unique(y)
+        entropy = 0
+        for cls in class_labels:
+            ratio = len(y[y == cls]) / len(y)
+            entropy += -ratio * np.log2(ratio)
+        return entropy
+    
+    def gini_index(self, y):
+        ''' function to compute gini index '''
+        
+        class_labels = np.unique(y)
+        gini = 0
+        for cls in class_labels:
+            ratio = len(y[y == cls]) / len(y)
+            gini += ratio**2
+        return 1 - gini
+        
+    def calculate_leaf_value(self, Y):
+        ''' function to compute leaf node '''
+        
+        Y = list(Y)
+        return max(Y, key=Y.count)
+    
+    def print_tree(self, tree=None, indent=" "):
+        ''' function to print the tree '''
+        
+        if not tree:
+            tree = self.root
+
+        if tree.value is not None:
+            print(tree.value)
+
+        else:
+            print("Feature"+str(tree.feature_index), "<=", tree.threshold, "?", tree.info_gain)
+            print("%sleft:" % (indent), end="")
+            self.print_tree(tree.left, indent + indent)
+            print("%sright:" % (indent), end="")
+            self.print_tree(tree.right, indent + indent)
+    
+    def fit(self, X, Y):
+        ''' function to train the tree '''
+        
+        dataset = np.concatenate((X, Y), axis=1)
+        self.root = self.build_tree(dataset)
+    
+    def predict(self, X):
+        ''' function to predict new dataset '''
+        
+        preditions = [self.make_prediction(x, self.root) for x in X]
+        return preditions
+    
+    def make_prediction(self, x, tree):
+        ''' function to predict a single data point '''
+        
+        if tree.value!=None: return tree.value
+        feature_val = x[tree.feature_index]
+        if feature_val<=tree.threshold:
+            return self.make_prediction(x, tree.left)
+        else:
+            return self.make_prediction(x, tree.right)
 
 # if __name__ == "__main__":
 
